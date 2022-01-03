@@ -23,13 +23,9 @@ class ContactoController extends AbstractController
         //Si no existe el elemento con dicha clave devolvemos null
         $resultado = ($this->contactos[$codigo] ?? null);
       
-        if ($resultado){
-            return $this->render('ficha_contacto.html.twig', [
-                'contacto' => $resultado
-            ]);
-        }else
-            return new Response("<html><body>Contacto $codigo no encontrado</body>");
-        
+        return $this->render('ficha_contacto.html.twig', [
+            'contacto' => $resultado
+        ]);
     }
 
     /**
@@ -43,18 +39,8 @@ class ContactoController extends AbstractController
             }
         );
         
-        if (count($resultados)){
-            $html = "<ul>";
-            foreach($resultados as $id => $resultado){
-                $html .= "<li>" . $id . "</li>";
-                $html .= "<li>" . $resultado['nombre'] . "</li>";
-                $html .= "<li>" . $resultado['telefono'] . "</li>";
-                $html .= "<li>" . $resultado['email'] . "</li>";
-            }
-            $html .= "</ul>";
-            return new Response("<html><body>$html</body>");
-        }else
-            return new Response("<html><body>No se ha encontrado ningún contacto</body>");
-        
+        return $this->render('lista_contactos.html.twig', [
+            'contactos' => $resultados
+        ]);        
     }
 }
