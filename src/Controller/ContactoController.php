@@ -3,11 +3,11 @@
 namespace App\Controller;
 
 use App\Entity\Contacto;
+use App\Entity\Provincia;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-
 
 class ContactoController extends AbstractController
 {
@@ -18,11 +18,60 @@ class ContactoController extends AbstractController
         7 => ["nombre" => "Laura Martínez", "telefono" => "42898966", "email" => "lm2000@ieselcaminas.org"],
         9 => ["nombre" => "Nora Jover", "telefono" => "54565859", "email" => "norajover@ieselcaminas.org"]
     ];    
-
+    
     /**
-    * @Route("/contacto/insertar", name="insertar")
+    * @Route("/contacto/insertarSinProvincia", name="insertar_sin_provincia_contacto")
     */
-    public function insertar(ManagerRegistry $doctrine): Response{
+    public function insertarSinProvincia(ManagerRegistry $doctrine): Response{
+        $entityManager = $doctrine->getManager();
+        $repositorio = $doctrine->getRepository(Provincia::class);
+	    
+        $provincia = $repositorio->findOneBy(["nombre" => "Alicante"]);
+
+        $contacto = new Contacto();
+        
+        $contacto->setNombre("Inserción de prueba sin provincia");
+        $contacto->setTelefono("900220022");
+        $contacto->setEmail("insercion.de.prueba.sin.provincia@contacto.es");
+        $contacto->setProvincia($provincia);
+        
+        $entityManager->persist($contacto);
+        
+        $entityManager->flush();
+        return $this->render('ficha_contacto.html.twig', [
+            'contacto' => $contacto
+        ]);
+    }
+   /**
+    * @Route("/contacto/insertarConProvincia", name="insertar_con_provincia_contacto")
+    */
+    public function insertarConProvincia(ManagerRegistry $doctrine): Response{
+        $entityManager = $doctrine->getManager();
+       
+        $provincia = new Provincia();
+
+        $provincia->setNombre("Alicante");
+
+        $contacto = new Contacto();
+        
+        $contacto->setNombre("Inserción de prueba con provincia");
+        $contacto->setTelefono("900220022");
+        $contacto->setEmail("insercion.de.prueba.provincia@contacto.es");
+        $contacto->setProvincia($provincia);
+        
+        $entityManager->persist($provincia);
+        $entityManager->persist($contacto);
+        
+        $entityManager->flush();
+        return $this->render('ficha_contacto.html.twig', [
+	    	'contacto' => $contacto
+	    ]);
+    }
+    /**
+     * @Route("/contacto/insertar", name="insertar_contacto")
+     */
+    public function insertar(ManagerRegistry $doctrine)
+    {
         $entityManager = $doctrine->getManager();
         foreach($this->contactos as $c){
             $contacto = new Contacto();
@@ -41,18 +90,17 @@ class ContactoController extends AbstractController
             return new Response("Error insertando objetos");
         }  
     }
-
     /**
     * @Route("/contacto/{codigo}", name="ficha_contacto")
     */
     public function ficha(ManagerRegistry $doctrine, $codigo): Response{
-        $repositorio = $doctrine->getRepository(Contacto::class);
-        $contacto = $repositorio->find($codigo);
-      
-        return $this->render('ficha_contacto.html.twig', [
-            'contacto' => $contacto
-        ]);
-    }
+	    $repositorio = $doctrine->getRepository(Contacto::class);
+	    $contacto = $repositorio->find($codigo);
+
+	    return $this->render('ficha_contacto.html.twig', [
+	    	'contacto' => $contacto
+	    ]);
+	}
 
     /**
     * @Route("/contacto/buscar/{texto}", name="buscar_contacto")
@@ -60,15 +108,26 @@ class ContactoController extends AbstractController
     public function buscar(ManagerRegistry $doctrine, $texto): Response{
         //Filtramos aquellos que contengan dicho texto en el nombre
         $repositorio = $doctrine->getRepository(Contacto::class);
-
+    
         $contactos = $repositorio->findByName($texto);
-
+    
         return $this->render('lista_contactos.html.twig', [
             'contactos' => $contactos
         ]);        
     }
-    
-    /**
+    public function buscarOld($texto): Response{
+        //Filtramos aquellos que contengan dicho texto en el nombre
+        $resultados = array_filter($this->contactos, 
+            function ($contacto) use ($texto){
+                return strpos($contacto["nombre"], $texto) !== FALSE;
+            }
+        );
+        
+        return $this->render('lista_contactos.html.twig', [
+            'contactos' => $resultados
+        ]);        
+    }
+   /**
     * @Route("/contacto/update/{id}/{nombre}", name="modificar_contacto")
     */
     public function update(ManagerRegistry $doctrine, $id, $nombre): Response{
@@ -91,7 +150,6 @@ class ContactoController extends AbstractController
                 'contacto' => null
             ]);
     }
-
     /**
     * @Route("/contacto/delete/{id}", name="eliminar_contacto")
     */
@@ -114,4 +172,4 @@ class ContactoController extends AbstractController
             ]);  
     }
 
-}
+ }
