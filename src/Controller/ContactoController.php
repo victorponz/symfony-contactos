@@ -30,9 +30,7 @@ class ContactoController extends AbstractController
 	*/
     public function nuevo() {
         $contacto = new Contacto();
-        $contacto->setNombre("Nacho");
-        $contacto->setTelefono("112233");
-        $contacto->setEmail("nacho@email.com");
+
         
         $formulario = $this->createFormBuilder($contacto)
 			->add('nombre', TextType::class)
