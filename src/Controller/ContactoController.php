@@ -12,6 +12,7 @@ use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 
 
@@ -25,28 +26,72 @@ class ContactoController extends AbstractController
         9 => ["nombre" => "Nora Jover", "telefono" => "54565859", "email" => "norajover@ieselcaminas.org"]
     ];    
 
-	/**
-	* @Route("/contacto/nuevo", name="nuevo_contacto")
-	*/
-    public function nuevo() {
+    /**
+    * @Route("/contacto/nuevo", name="nuevo_contacto")
+    */
+    public function nuevo(ManagerRegistry $doctrine, Request $request) {
         $contacto = new Contacto();
 
         
         $formulario = $this->createFormBuilder($contacto)
-			->add('nombre', TextType::class)
-			->add('telefono', TextType::class)
-			->add('email', EmailType::class, array('label' => 'Correo electrónico'))
+            ->add('nombre', TextType::class)
+            ->add('telefono', TextType::class)
+            ->add('email', EmailType::class, array('label' => 'Correo electrónico'))
             ->add('provincia', EntityType::class, array(
-				'class' => Provincia::class,
-				'choice_label' => 'nombre',))
-			->add('save', SubmitType::class, array('label' => 'Enviar'))
-			->getForm();
-		
-		return $this->render('nuevo.html.twig', array(
-			'formulario' => $formulario->createView()
-		));
-	}
+                'class' => Provincia::class,
+                'choice_label' => 'nombre',))
+            ->add('save', SubmitType::class, array('label' => 'Enviar'))
+            ->getForm();
+            $formulario->handleRequest($request);
 
+            if ($formulario->isSubmitted() && $formulario->isValid()) {
+                $contacto = $formulario->getData();
+                $entityManager = $doctrine->getManager();
+                $entityManager->persist($contacto);
+                $entityManager->flush();
+                return $this->redirectToRoute('ficha_contacto', ["codigo" => $contacto->getId()]);
+            }
+            return $this->render('nuevo.html.twig', array(
+                'formulario' => $formulario->createView()
+            ));
+    }
+
+    /**
+    * @Route("/contacto/editar/{codigo}", name="editar_contacto",requirements={"codigo"="\d+"})
+    */
+    public function editar(ManagerRegistry $doctrine, Request $request, $codigo) {
+        $repositorio = $doctrine->getRepository(Contacto::class);
+
+        $contacto = $repositorio->find($codigo);
+        if ($contacto){
+            $formulario = $this->createFormBuilder($contacto)
+                ->add('nombre', TextType::class)
+                ->add('telefono', TextType::class)
+                ->add('email', EmailType::class, array('label' => 'Correo electrónico'))
+                ->add('provincia', EntityType::class, array(
+                    'class' => Provincia::class,
+                    'choice_label' => 'nombre',))
+                ->add('save', SubmitType::class, array('label' => 'Enviar'))
+                ->getForm();
+                $formulario->handleRequest($request);
+
+                if ($formulario->isSubmitted() && $formulario->isValid()) {
+                    $contacto = $formulario->getData();
+                    $entityManager = $doctrine->getManager();
+                    $entityManager->persist($contacto);
+                    $entityManager->flush();
+                    return $this->redirectToRoute('ficha_contacto', ["codigo" => $contacto->getId()]);
+                }
+                return $this->render('nuevo.html.twig', array(
+                    'formulario' => $formulario->createView()
+                ));
+            }else{
+                return $this->render('ficha_contacto.html.twig', [
+                    'contacto' => NULL
+                ]);
+            }
+    }
+    
     /**
     * @Route("/contacto/insertarSinProvincia", name="insertar_sin_provincia_contacto")
     */
